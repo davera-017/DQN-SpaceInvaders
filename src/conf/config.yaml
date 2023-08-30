@@ -1,0 +1,90 @@
+device: cpu
+
+# Environment
+envs:
+  _target_: src.enviroment.make_sync_envs
+  env_id: "SpaceInvadersNoFrameskip-v4"
+  n_envs: 4
+  seed: 1234
+
+# Replay Buffer
+replay_buffer: 
+  _partial_: true
+  _target_: stable_baselines3.common.buffers.ReplayBuffer
+  buffer_size: 100000
+  n_envs: ${..envs.n_envs}
+  device: ${..device}
+  optimize_memory_usage: True
+  handle_timeout_termination: False
+
+# Estimator
+estimator: 
+  _target_: src.estimator.MaxQEstimator
+
+
+# Networks
+local_network:
+  _partial_: true
+  _target_: src.networks.QNetwork
+  lr_rate: 1e-4
+  tau: 1
+  n_frames: 4
+
+target_network:
+  _partial_: true
+  _target_: src.networks.QNetwork
+  lr_rate: 1e-4
+  tau: 1
+  n_frames: 4
+
+# Agent
+agent:
+  _partial_: true
+  _target_: src.agent.Agent
+  batch_size: 128
+  gamma: 0.99
+  device: ${..device}
+
+# Training function
+train_params:
+  do_train: false
+  total_timesteps: int(1e6)
+  learning_starts: int(1e5)
+  train_frequency: 4
+  target_update_frequency: 1000
+  epsilon: 0.99
+  min_epsilon: 0.01
+  exploration_fraction: 0.9
+  checkpoint_frequency: 100000
+  model_path: data/checkpoints/best/
+
+# Eval function
+eval_params:
+  do_eval: true
+  env_id: ${..envs.env_id}
+  eval_episodes: 15
+  make_env: 
+    _partial_: true
+    _target_: src.enviroment.make_sync_envs
+  agent:
+    _partial_: true
+    _target_: src.agent.Agent
+  model_path: ${..train_params.model_path}
+  device: ${..device}
+  seed: ${..envs.seed}
+
+# Performance visualization
+visualization_params:
+  do_visualization: false
+  env_id: ${..envs.env_id}
+  eval_episodes: 2
+  make_env: 
+    _partial_: true
+    _target_: src.enviroment.make_sync_envs
+  agent:
+    _partial_: true
+    _target_: src.agent.Agent
+  model_path: ${..train_params.model_path}
+  device: ${..device}
+  seed: ${..envs.seed}
+
